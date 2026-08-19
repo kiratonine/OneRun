@@ -9,7 +9,7 @@ export const COST_PER_KM_KZT =
   DIESEL_PRICE_KZT_PER_L *
   OVERHEAD_MULTIPLIER;
 
-export const ORS_BASE_URL = 'https://api.openrouteservice.org/v2';
+export const ORS_BASE_URL = 'https://api.heigit.org/openrouteservice/v2';
 export const ORS_PROFILE = 'driving-hgv';
 export const ORS_TIMEOUT_MS = 10_000;
 
