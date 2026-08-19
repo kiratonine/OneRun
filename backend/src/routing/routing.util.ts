@@ -25,6 +25,10 @@ export function haversineDistanceKm(
 
 type DistanceMatrix = ReadonlyArray<ReadonlyArray<number>>;
 
+const MAX_EN_ROUTE_DETOUR_KM = 5;
+const MAX_EN_ROUTE_DETOUR_RATIO = 0.02;
+const DISTANCE_EPSILON_KM = 0.01;
+
 function haversineDistanceMatrix(points: RoutingPoint[]): number[][] {
   return points.map((from) =>
     points.map((to) => haversineDistanceKm(from, to)),
@@ -45,6 +49,29 @@ function assertDistanceMatrix(
   ) {
     throw new Error(`Distance matrix must be ${expectedSize}x${expectedSize}`);
   }
+}
+
+function liesOnRouteBefore(
+  currentIndex: number,
+  candidateIndex: number,
+  nextIndex: number,
+  distances: DistanceMatrix,
+): boolean {
+  const directDistance = distances[currentIndex][nextIndex];
+  const distanceToCandidate = distances[currentIndex][candidateIndex];
+
+  if (distanceToCandidate + DISTANCE_EPSILON_KM >= directDistance) {
+    return false;
+  }
+
+  const distanceViaCandidate =
+    distanceToCandidate + distances[candidateIndex][nextIndex];
+  const allowedDetour = Math.max(
+    MAX_EN_ROUTE_DETOUR_KM,
+    directDistance * MAX_EN_ROUTE_DETOUR_RATIO,
+  );
+
+  return distanceViaCandidate <= directDistance + allowedDetour;
 }
 
 export function orderByOptimalRoundTrip(
@@ -90,6 +117,15 @@ export function orderByOptimalRoundTrip(
     }
 
     for (const nextIndex of remainingIndices) {
+      const skipsEnRouteDestination = remainingIndices.some(
+        (candidateIndex) =>
+          candidateIndex !== nextIndex &&
+          liesOnRouteBefore(currentIndex, candidateIndex, nextIndex, distances),
+      );
+      if (skipsEnRouteDestination) {
+        continue;
+      }
+
       const nextDistance =
         travelledDistance + distances[currentIndex][nextIndex];
       if (nextDistance > bestDistance) {
