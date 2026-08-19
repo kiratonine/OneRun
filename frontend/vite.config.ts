@@ -9,6 +9,9 @@ export default defineConfig({
   // Дев-сервер слушает и на локальной сети: /demo нужно открывать с телефона,
   // а не только с ноутбука. `npm run dev` печатает адрес в строке Network.
   server: { host: true },
+  preview: {
+    allowedHosts: ["pure-perception-production-173c.up.railway.app"],
+  },
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
