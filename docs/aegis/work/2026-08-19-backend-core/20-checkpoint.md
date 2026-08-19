@@ -17,5 +17,5 @@ Resume from live integration. Preserve the four pre-existing untracked planning 
 - Compatibility: report DTO and `/api/health` match the documented contract.
 - New owners: only the planned `health`, `supabase`, and `report` modules.
 - Evidence: local unit/integration tests, typecheck, build, dependency audit, deterministic fallback coverage, live Supabase persistence, and public Railway API checks.
-- External compatibility: proven against live Supabase and Railway; not yet proven against authenticated ORS, Backend-2, or frontend.
+- External compatibility: proven against live Supabase, Railway, and authenticated ORS; not yet proven against Backend-2 or frontend.
 - Decision: Backend-1 complete, including authenticated ORS road-geometry acceptance.
