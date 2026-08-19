@@ -25,6 +25,13 @@ interface GeminiGenerateContentResponse {
   }>;
 }
 
+interface GeminiAttempt {
+  contentMd: string;
+  raw: GeminiGenerateContentResponse;
+}
+
+class LoadingPlanConsistencyError extends Error {}
+
 export function cleanMarkdownResponse(text: string): string {
   return text
     .trim()
@@ -128,6 +135,32 @@ function hasConsistentLoadingPlan(
   );
 }
 
+function validateReport(contentMd: string, summary: TripSummaryDto): void {
+  if (!contentMd) {
+    throw new Error('Empty Gemini response');
+  }
+  if (!hasRequiredNumbers(contentMd, summary)) {
+    throw new Error('Gemini response omitted required numeric values');
+  }
+  if (!hasRequiredSections(contentMd)) {
+    throw new Error('Gemini response omitted required report sections');
+  }
+  if (!hasLocalizedLabels(contentMd)) {
+    throw new Error('Gemini response omitted localized report labels');
+  }
+  if (!hasConsistentLoadingPlan(contentMd, summary)) {
+    throw new LoadingPlanConsistencyError(
+      'Gemini response contradicts route loading order',
+    );
+  }
+}
+
+function buildLoadingCorrectionPrompt(summary: TripSummaryDto): string {
+  return `${buildReportPrompt(summary)}
+
+Предыдущий ответ был отклонён из-за неверного размещения груза. Сформируй полный отчёт заново. Строго проверь план погрузки: заявка с минимальным dropIndex выгружается первой и должна стоять у дверей; заявка с максимальным dropIndex выгружается последней и должна стоять в глубине прицепа.`;
+}
+
 function errorReason(error: unknown): string {
   if (axios.isAxiosError(error)) {
     return `HTTP status=${error.response?.status ?? 'none'} code=${error.code ?? 'none'}`;
@@ -149,52 +182,79 @@ export class GeminiProvider implements LlmProvider {
     const model = process.env.GEMINI_MODEL?.trim() || DEFAULT_GEMINI_MODEL;
 
     try {
-      const { data } = await axios.post<GeminiGenerateContentResponse>(
-        `${GEMINI_API_BASE_URL}/${encodeURIComponent(model)}:generateContent`,
-        {
-          system_instruction: {
-            parts: [{ text: REPORT_SYSTEM_INSTRUCTION }],
-          },
-          contents: [
-            {
-              role: 'user',
-              parts: [{ text: buildReportPrompt(summary) }],
-            },
-          ],
-          generationConfig: { temperature: 0.2 },
-        },
-        {
-          headers: {
-            'Content-Type': 'application/json',
-            'x-goog-api-key': apiKey,
-          },
-          timeout: GEMINI_TIMEOUT_MS,
-        },
+      const firstAttempt = await this.request(
+        model,
+        apiKey,
+        buildReportPrompt(summary),
       );
-      const contentMd = cleanMarkdownResponse(extractText(data));
-      if (!contentMd) {
-        throw new Error('Empty Gemini response');
-      }
-      if (!hasRequiredNumbers(contentMd, summary)) {
-        throw new Error('Gemini response omitted required numeric values');
-      }
-      if (!hasRequiredSections(contentMd)) {
-        throw new Error('Gemini response omitted required report sections');
-      }
-      if (!hasLocalizedLabels(contentMd)) {
-        throw new Error('Gemini response omitted localized report labels');
-      }
-      if (!hasConsistentLoadingPlan(contentMd, summary)) {
-        throw new Error('Gemini response contradicts route loading order');
+
+      try {
+        validateReport(firstAttempt.contentMd, summary);
+        return {
+          contentMd: firstAttempt.contentMd,
+          raw: firstAttempt.raw,
+          source: 'gemini',
+        };
+      } catch (error: unknown) {
+        if (!(error instanceof LoadingPlanConsistencyError)) {
+          throw error;
+        }
+
+        this.logger.warn(`${error.message}; retrying with correction`);
       }
 
-      return { contentMd, raw: data, source: 'gemini' };
+      const correctedAttempt = await this.request(
+        model,
+        apiKey,
+        buildLoadingCorrectionPrompt(summary),
+      );
+      validateReport(correctedAttempt.contentMd, summary);
+
+      return {
+        contentMd: correctedAttempt.contentMd,
+        raw: correctedAttempt.raw,
+        source: 'gemini',
+      };
     } catch (error: unknown) {
       this.logger.warn(
         `Gemini failed; using fallback report (${errorReason(error)})`,
       );
       return this.fallback(summary);
     }
+  }
+
+  private async request(
+    model: string,
+    apiKey: string,
+    prompt: string,
+  ): Promise<GeminiAttempt> {
+    const { data } = await axios.post<GeminiGenerateContentResponse>(
+      `${GEMINI_API_BASE_URL}/${encodeURIComponent(model)}:generateContent`,
+      {
+        system_instruction: {
+          parts: [{ text: REPORT_SYSTEM_INSTRUCTION }],
+        },
+        contents: [
+          {
+            role: 'user',
+            parts: [{ text: prompt }],
+          },
+        ],
+        generationConfig: { temperature: 0.2 },
+      },
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          'x-goog-api-key': apiKey,
+        },
+        timeout: GEMINI_TIMEOUT_MS,
+      },
+    );
+
+    return {
+      contentMd: cleanMarkdownResponse(extractText(data)),
+      raw: data,
+    };
   }
 
   private fallback(summary: TripSummaryDto): ReportResult {

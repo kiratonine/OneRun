@@ -215,7 +215,7 @@ describe('GeminiProvider', () => {
     expect(result.contentMd).not.toContain('costPerKmKzt');
   });
 
-  it('returns the deterministic fallback when Gemini reverses cargo placement', async () => {
+  it('retries Gemini with a correction when cargo placement is reversed', async () => {
     const loadingSummary: TripSummaryDto = {
       ...summary,
       orders: [
@@ -255,15 +255,40 @@ describe('GeminiProvider', () => {
 
 Общий вес груза: 520
 Стоимость километра: 178.5`;
-    jest.spyOn(axios, 'post').mockResolvedValue({
-      data: {
-        candidates: [{ content: { parts: [{ text: reversedReport }] } }],
-      },
-    });
+    const reportLabels = reversedReport.slice(
+      reversedReport.lastIndexOf('\n\n'),
+    );
+    const correctedReport = `${correctReport}${reportLabels}`;
+    const post = jest
+      .spyOn(axios, 'post')
+      .mockResolvedValueOnce({
+        data: {
+          candidates: [{ content: { parts: [{ text: reversedReport }] } }],
+        },
+      })
+      .mockResolvedValueOnce({
+        data: {
+          candidates: [{ content: { parts: [{ text: correctedReport }] } }],
+        },
+      });
 
     const result = await new GeminiProvider().generate(loadingSummary);
 
-    expect(result.source).toBe('mock');
-    expect(result.contentMd).toBe(correctReport);
+    expect(result.source).toBe('gemini');
+    expect(result.contentMd).toBe(correctedReport);
+    expect(post).toHaveBeenCalledTimes(2);
+    expect(post.mock.calls[1][1]).toEqual(
+      expect.objectContaining({
+        contents: [
+          expect.objectContaining({
+            parts: [
+              expect.objectContaining({
+                text: expect.stringContaining('dropIndex'),
+              }),
+            ],
+          }),
+        ],
+      }),
+    );
   });
 });

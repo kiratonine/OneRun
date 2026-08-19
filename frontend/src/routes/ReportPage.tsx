@@ -7,7 +7,7 @@ import { formatKm, formatKzt } from '@/lib/format';
 
 const REPORT_SOURCE_LABELS = {
   gemini: 'Составлен ИИ',
-  mock: 'Черновик',
+  mock: 'Проверенный автоотчёт',
 } as const;
 
 export function ReportPage() {
