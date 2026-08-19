@@ -5,6 +5,7 @@ import { OrdersPage } from '@/routes/OrdersPage';
 import { ReportPage } from '@/routes/ReportPage';
 import { DemoPage } from '@/routes/DemoPage';
 import { HealthPage } from '@/routes/HealthPage';
+import { LandingPage } from '@/routes/LandingPage';
 import { DemoFallbackPanel } from '@/features/demo/DemoFallbackPanel';
 import { CurrentTripProvider } from '@/features/trip/CurrentTripProvider';
 import { useOrdersRealtime } from '@/realtime/useOrdersRealtime';
@@ -70,7 +71,7 @@ function Shell() {
   );
 }
 
-export function App() {
+function MvpApp() {
   // Подписка одна на всё приложение: заявки нужны и карте, и таблице, и демо-экрану.
   useOrdersRealtime();
 
@@ -83,6 +84,16 @@ export function App() {
         <Route path="*" element={<Shell />} />
       </Routes>
     </CurrentTripProvider>
+  );
+}
+
+export function App() {
+  return (
+    <Routes>
+      {/* Лендинг живёт вне светлой оболочки MVP и не запускает его realtime-подписку. */}
+      <Route path="/landing" element={<LandingPage />} />
+      <Route path="*" element={<MvpApp />} />
+    </Routes>
   );
 }
 
