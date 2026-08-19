@@ -2,7 +2,7 @@
 
 - Current todo: configure an ORS key and verify real road geometry; integrate Backend-2 and the frontend when their branches are available.
 - Active slice: Backend-1 is deployed and connected to live Supabase; remaining work depends on external owners or the missing ORS credential.
-- Completed: task-start Git snapshot; `feat/backend-core`; NestJS skeleton; public health-check; constants; live Supabase schema/seed/Realtime; report DTO/stub; settlements/orders/pool/demo APIs; routing fallback; pricing; transactional trip persistence; cached trip readback; Railway deployment; live seed → pool → trip → cached GET flow.
+- Completed: task-start Git snapshot; `feat/backend-core`; NestJS skeleton; public health-check; constants; live Supabase schema/seed/Realtime; report DTO/stub; settlements/orders/pool/demo APIs; routing fallback; pricing; transactional trip persistence; cached trip readback; Railway deployment; live seed → pool → trip → cached GET flow; three consecutive live demo resets.
 - Evidence refs: Git snapshot at `8e250e1a85ec31a02d2ec975c0c262c0ca117a58`; local test suite, typecheck, build, format check and dependency audit; live API checks recorded in `90-evidence.md`.
 - Blockers: `ORS_API_KEY` is not configured; Backend-2 and frontend branches do not exist yet. Gemini integration and frontend CORS cannot be finalized by Backend-1 alone.
 - Next step: add `ORS_API_KEY`, run the road-geometry acceptance check, then integrate downstream branches when available.

@@ -35,6 +35,7 @@
 - Six live `POST /api/demo/seed` calls produced 520 kg; `GET /api/pool` returned six orders and `isReady = true`.
 - Live `POST /api/trips` persisted `TRIP-001`, routed all six orders, and allocated exactly 228475 KZT, matching rounded trip cost.
 - Repeated `GET /api/trips/:id` returned identical route geometry and report content without a new routing/report call.
+- Three consecutive live `POST /api/demo/reset` calls returned `{ "ok": true }`; afterwards orders and pool counts were zero, and the deleted trip returned HTTP 404.
 - Covered: production database schema, Realtime publication membership, demo threshold, transactional persistence, public deployment, and cached readback.
 - Uncovered: authenticated ORS road geometry (no `ORS_API_KEY`), Gemini/Backend-2, frontend Realtime rendering, and final CORS origin.
 - Confidence: A for the live Backend-1 fallback path; C for the remaining external-owner integrations.
