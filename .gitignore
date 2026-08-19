@@ -12,11 +12,13 @@ dist
 dist-ssr
 *.local
 
-# Local environment files and secrets
+# Local environment files, secrets, and deployment artifacts
 .env
 .env.*
 !.env.example
 backend/.env
+.vercel
+.playwright-mcp
 
 # Editor directories and files
 .vscode/*
