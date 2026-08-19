@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { TripSummaryDto } from '../dto/trip-summary.dto';
+import { buildFallbackReport } from '../templates/fallback-report';
 import { GeminiProvider } from './gemini.provider';
 
 const summary: TripSummaryDto = {
@@ -212,5 +213,57 @@ describe('GeminiProvider', () => {
     expect(result.contentMd).toContain('Расчётная себестоимость');
     expect(result.contentMd).not.toContain('totalWeightKg');
     expect(result.contentMd).not.toContain('costPerKmKzt');
+  });
+
+  it('returns the deterministic fallback when Gemini reverses cargo placement', async () => {
+    const loadingSummary: TripSummaryDto = {
+      ...summary,
+      orders: [
+        {
+          code: 'ORD-FIRST',
+          shipperName: 'First shipper',
+          toName: 'First stop',
+          cargoName: 'First cargo',
+          weightKg: 100,
+          boxesCount: 1,
+          boxNote: null,
+          dropIndex: 1,
+          loadPosition: 2,
+          priceKzt: 10_000,
+          legDistanceKm: 50,
+        },
+        {
+          code: 'ORD-LAST',
+          shipperName: 'Last shipper',
+          toName: 'Last stop',
+          cargoName: 'Last cargo',
+          weightKg: 420,
+          boxesCount: 2,
+          boxNote: null,
+          dropIndex: 2,
+          loadPosition: 1,
+          priceKzt: 29_270,
+          legDistanceKm: 120,
+        },
+      ],
+    };
+    const correctReport = buildFallbackReport(loadingSummary);
+    const reversedReport = `${correctReport
+      .replace('ставить у дверей', '__PLACEMENT__')
+      .replace('ставить в глубине прицепа', 'ставить у дверей')
+      .replace('__PLACEMENT__', 'ставить в глубине прицепа')}
+
+Общий вес груза: 520
+Стоимость километра: 178.5`;
+    jest.spyOn(axios, 'post').mockResolvedValue({
+      data: {
+        candidates: [{ content: { parts: [{ text: reversedReport }] } }],
+      },
+    });
+
+    const result = await new GeminiProvider().generate(loadingSummary);
+
+    expect(result.source).toBe('mock');
+    expect(result.contentMd).toBe(correctReport);
   });
 });

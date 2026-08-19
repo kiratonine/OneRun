@@ -90,6 +90,44 @@ function hasLocalizedLabels(content: string): boolean {
   );
 }
 
+function hasConsistentLoadingPlan(
+  content: string,
+  summary: TripSummaryDto,
+): boolean {
+  if (summary.orders.length < 2) {
+    return true;
+  }
+
+  const loadingStart = content.indexOf('План погрузки');
+  const loadingEnd = content.indexOf('Стоимость по заявкам', loadingStart);
+  if (loadingStart < 0 || loadingEnd < 0) {
+    return false;
+  }
+
+  const loadingLines = content.slice(loadingStart, loadingEnd).split(/\r?\n/);
+  const firstDropIndex = Math.min(
+    ...summary.orders.map(({ dropIndex }) => dropIndex),
+  );
+  const lastDropIndex = Math.max(
+    ...summary.orders.map(({ dropIndex }) => dropIndex),
+  );
+  if (firstDropIndex === lastDropIndex) {
+    return true;
+  }
+
+  const rowContains = (code: string, placement: RegExp) =>
+    loadingLines.some((line) => line.includes(code) && placement.test(line));
+
+  return (
+    summary.orders
+      .filter(({ dropIndex }) => dropIndex === firstDropIndex)
+      .every(({ code }) => rowContains(code, /двер/i)) &&
+    summary.orders
+      .filter(({ dropIndex }) => dropIndex === lastDropIndex)
+      .every(({ code }) => rowContains(code, /глубин/i))
+  );
+}
+
 function errorReason(error: unknown): string {
   if (axios.isAxiosError(error)) {
     return `HTTP status=${error.response?.status ?? 'none'} code=${error.code ?? 'none'}`;
@@ -145,6 +183,9 @@ export class GeminiProvider implements LlmProvider {
       }
       if (!hasLocalizedLabels(contentMd)) {
         throw new Error('Gemini response omitted localized report labels');
+      }
+      if (!hasConsistentLoadingPlan(contentMd, summary)) {
+        throw new Error('Gemini response contradicts route loading order');
       }
 
       return { contentMd, raw: data, source: 'gemini' };
