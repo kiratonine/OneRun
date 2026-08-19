@@ -53,7 +53,10 @@ export class TripsService {
     const hub = this.toRoutingPoint(hubSettlement);
     const route = await this.routingService.buildRoute(
       hub,
-      orders.map((order) => this.toRoutingPoint(order.to)),
+      orders.map((order) => ({
+        ...this.toRoutingPoint(order.to),
+        deliveryWeightKg: order.weightKg,
+      })),
     );
     const pricing = this.pricingService.calculate(
       route.totalDistanceKm,

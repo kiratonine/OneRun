@@ -199,6 +199,19 @@ describe('TripsService', () => {
     expect(created.orders).toHaveLength(2);
     expect(cached).toEqual(created);
     expect(routingService.buildRoute).toHaveBeenCalledTimes(1);
+    expect(routingService.buildRoute).toHaveBeenCalledWith(
+      expect.objectContaining({ code: 'AKTAU' }),
+      [
+        expect.objectContaining({
+          code: 'SHETPE',
+          deliveryWeightKg: 260,
+        }),
+        expect.objectContaining({
+          code: 'BEINEU',
+          deliveryWeightKg: 260,
+        }),
+      ],
+    );
     expect(reportService.generate).toHaveBeenCalledTimes(1);
     expect(pricingService.calculate).toHaveBeenCalledWith(800, [
       {

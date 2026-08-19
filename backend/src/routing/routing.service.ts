@@ -10,9 +10,13 @@ import {
   BuiltRoute,
   Coordinate,
   LineStringGeometry,
+  RoutingDestination,
   RoutingPoint,
 } from './routing.types';
-import { haversineDistanceKm, orderByOptimalRoundTrip } from './routing.util';
+import {
+  haversineDistanceKm,
+  orderByLowestOperatingCost,
+} from './routing.util';
 
 interface OrsGeoJsonResponse {
   features: Array<{
@@ -53,11 +57,23 @@ export class RoutingService {
 
   async buildRoute(
     hub: RoutingPoint,
-    destinations: RoutingPoint[],
+    destinations: RoutingDestination[],
   ): Promise<BuiltRoute> {
-    const uniqueDestinations = Array.from(
-      new Map(destinations.map((point) => [point.code, point])).values(),
-    );
+    const destinationsByCode = new Map<string, RoutingDestination>();
+    for (const destination of destinations) {
+      const existing = destinationsByCode.get(destination.code);
+      destinationsByCode.set(
+        destination.code,
+        existing
+          ? {
+              ...existing,
+              deliveryWeightKg:
+                existing.deliveryWeightKg + destination.deliveryWeightKg,
+            }
+          : destination,
+      );
+    }
+    const uniqueDestinations = Array.from(destinationsByCode.values());
     const orderedDestinations = await this.orderDestinations(
       hub,
       uniqueDestinations,
@@ -89,8 +105,8 @@ export class RoutingService {
 
   private async orderDestinations(
     hub: RoutingPoint,
-    destinations: RoutingPoint[],
-  ): Promise<RoutingPoint[]> {
+    destinations: RoutingDestination[],
+  ): Promise<RoutingDestination[]> {
     const points = [hub, ...destinations];
 
     try {
@@ -117,7 +133,7 @@ export class RoutingService {
         throw new Error('ORS returned an incomplete distance matrix');
       }
 
-      return orderByOptimalRoundTrip(
+      return orderByLowestOperatingCost(
         hub,
         destinations,
         distances as number[][],
@@ -126,7 +142,7 @@ export class RoutingService {
       this.logger.warn(
         `ORS matrix request failed; optimizing by straight-line distance (${describeError(error)})`,
       );
-      return orderByOptimalRoundTrip(hub, destinations);
+      return orderByLowestOperatingCost(hub, destinations);
     }
   }
 

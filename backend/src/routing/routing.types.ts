@@ -7,6 +7,10 @@ export interface RoutingPoint {
   lon: number;
 }
 
+export interface RoutingDestination extends RoutingPoint {
+  deliveryWeightKg: number;
+}
+
 export interface LineStringGeometry {
   type: 'LineString';
   coordinates: Coordinate[];
@@ -14,7 +18,7 @@ export interface LineStringGeometry {
 
 export interface BuiltRoute {
   stopOrder: string[];
-  orderedDestinations: RoutingPoint[];
+  orderedDestinations: RoutingDestination[];
   routeGeometry: LineStringGeometry;
   totalDistanceKm: number;
   distanceFromHubKm: Record<string, number>;

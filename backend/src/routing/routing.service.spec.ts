@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { RoutingService } from './routing.service';
-import { RoutingPoint } from './routing.types';
+import { RoutingDestination, RoutingPoint } from './routing.types';
 
 const hub: RoutingPoint = {
   code: 'AKTAU',
@@ -24,6 +24,7 @@ describe('RoutingService', () => {
         nameRu: 'Шетпе',
         lat: 44.1413139,
         lon: 52.1556413,
+        deliveryWeightKg: 520,
       },
     ]);
 
@@ -41,7 +42,7 @@ describe('RoutingService', () => {
     expect(result.distanceFromHubKm.SHETPE).toBeGreaterThan(100);
   });
 
-  it('uses the ORS distance matrix to choose the shortest round trip', async () => {
+  it('uses the ORS distance matrix to choose the lowest-cost round trip', async () => {
     const post = jest.spyOn(axios, 'post').mockImplementation((url, body) => {
       if (String(url).includes('/matrix/')) {
         return Promise.resolve({
@@ -70,10 +71,10 @@ describe('RoutingService', () => {
       });
     });
     const service = new RoutingService();
-    const destinations: RoutingPoint[] = [
-      { code: 'A', nameRu: 'A', lat: 43.7, lon: 51.2 },
-      { code: 'B', nameRu: 'B', lat: 43.8, lon: 51.3 },
-      { code: 'C', nameRu: 'C', lat: 43.9, lon: 51.4 },
+    const destinations: RoutingDestination[] = [
+      { code: 'A', nameRu: 'A', lat: 43.7, lon: 51.2, deliveryWeightKg: 0 },
+      { code: 'B', nameRu: 'B', lat: 43.8, lon: 51.3, deliveryWeightKg: 0 },
+      { code: 'C', nameRu: 'C', lat: 43.9, lon: 51.4, deliveryWeightKg: 0 },
     ];
 
     const result = await service.buildRoute(hub, destinations);

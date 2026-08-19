@@ -8,6 +8,7 @@ export const COST_PER_KM_KZT =
   (FUEL_CONSUMPTION_L_PER_100KM / 100) *
   DIESEL_PRICE_KZT_PER_L *
   OVERHEAD_MULTIPLIER;
+export const LOAD_COST_PER_TONNE_KM_KZT = 3;
 
 export const ORS_BASE_URL = 'https://api.heigit.org/openrouteservice/v2';
 export const ORS_PROFILE = 'driving-hgv';

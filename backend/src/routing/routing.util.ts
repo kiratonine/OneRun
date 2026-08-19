@@ -1,5 +1,9 @@
-import { EARTH_RADIUS_KM } from '../config/constants';
-import { RoutingPoint } from './routing.types';
+import {
+  COST_PER_KM_KZT,
+  EARTH_RADIUS_KM,
+  LOAD_COST_PER_TONNE_KM_KZT,
+} from '../config/constants';
+import { RoutingDestination, RoutingPoint } from './routing.types';
 
 function toRadians(degrees: number): number {
   return (degrees * Math.PI) / 180;
@@ -25,9 +29,15 @@ export function haversineDistanceKm(
 
 type DistanceMatrix = ReadonlyArray<ReadonlyArray<number>>;
 
-const MAX_EN_ROUTE_DETOUR_KM = 5;
-const MAX_EN_ROUTE_DETOUR_RATIO = 0.02;
-const DISTANCE_EPSILON_KM = 0.01;
+export interface RoutingCostModel {
+  costPerKmKzt: number;
+  loadCostPerTonneKmKzt: number;
+}
+
+const DEFAULT_ROUTING_COST_MODEL: RoutingCostModel = {
+  costPerKmKzt: COST_PER_KM_KZT,
+  loadCostPerTonneKmKzt: LOAD_COST_PER_TONNE_KM_KZT,
+};
 
 function haversineDistanceMatrix(points: RoutingPoint[]): number[][] {
   return points.map((from) =>
@@ -51,53 +61,73 @@ function assertDistanceMatrix(
   }
 }
 
-function liesOnRouteBefore(
-  currentIndex: number,
-  candidateIndex: number,
-  nextIndex: number,
-  distances: DistanceMatrix,
-): boolean {
-  const directDistance = distances[currentIndex][nextIndex];
-  const distanceToCandidate = distances[currentIndex][candidateIndex];
-
-  if (distanceToCandidate + DISTANCE_EPSILON_KM >= directDistance) {
-    return false;
+function assertCostInputs(
+  destinations: RoutingDestination[],
+  costModel: RoutingCostModel,
+): void {
+  if (
+    !Number.isFinite(costModel.costPerKmKzt) ||
+    costModel.costPerKmKzt < 0 ||
+    !Number.isFinite(costModel.loadCostPerTonneKmKzt) ||
+    costModel.loadCostPerTonneKmKzt < 0
+  ) {
+    throw new Error('Routing cost values must be finite and non-negative');
   }
 
-  const distanceViaCandidate =
-    distanceToCandidate + distances[candidateIndex][nextIndex];
-  const allowedDetour = Math.max(
-    MAX_EN_ROUTE_DETOUR_KM,
-    directDistance * MAX_EN_ROUTE_DETOUR_RATIO,
-  );
-
-  return distanceViaCandidate <= directDistance + allowedDetour;
+  if (
+    destinations.some(
+      ({ deliveryWeightKg }) =>
+        !Number.isFinite(deliveryWeightKg) || deliveryWeightKg < 0,
+    )
+  ) {
+    throw new Error('Delivery weights must be finite and non-negative');
+  }
 }
 
-export function orderByOptimalRoundTrip(
+function legOperatingCost(
+  distanceKm: number,
+  payloadKg: number,
+  costModel: RoutingCostModel,
+): number {
+  return (
+    distanceKm * costModel.costPerKmKzt +
+    distanceKm * (payloadKg / 1000) * costModel.loadCostPerTonneKmKzt
+  );
+}
+
+export function orderByLowestOperatingCost(
   hub: RoutingPoint,
-  destinations: RoutingPoint[],
+  destinations: RoutingDestination[],
   distanceMatrix?: DistanceMatrix,
-): RoutingPoint[] {
+  costModel: RoutingCostModel = DEFAULT_ROUTING_COST_MODEL,
+): RoutingDestination[] {
   if (destinations.length === 0) {
     return [];
   }
 
+  assertCostInputs(destinations, costModel);
   const points = [hub, ...destinations];
   const distances = distanceMatrix ?? haversineDistanceMatrix(points);
   assertDistanceMatrix(distances, points.length);
 
   let bestIndices: number[] | undefined;
-  let bestDistance = Number.POSITIVE_INFINITY;
+  let bestCost = Number.POSITIVE_INFINITY;
+  const initialPayloadKg = destinations.reduce(
+    (sum, { deliveryWeightKg }) => sum + deliveryWeightKg,
+    0,
+  );
 
   function visit(
     currentIndex: number,
     remainingIndices: number[],
     orderedIndices: number[],
-    travelledDistance: number,
+    payloadKg: number,
+    travelledCost: number,
   ): void {
     if (remainingIndices.length === 0) {
-      const roundTripDistance = travelledDistance + distances[currentIndex][0];
+      const roundTripCost =
+        travelledCost +
+        legOperatingCost(distances[currentIndex][0], payloadKg, costModel);
       const candidateCodes = orderedIndices
         .map((index) => points[index].code)
         .join('\u0000');
@@ -106,37 +136,35 @@ export function orderByOptimalRoundTrip(
         .join('\u0000');
 
       if (
-        roundTripDistance < bestDistance ||
-        (roundTripDistance === bestDistance &&
+        roundTripCost < bestCost ||
+        (roundTripCost === bestCost &&
           (bestCodes === undefined || candidateCodes < bestCodes))
       ) {
-        bestDistance = roundTripDistance;
+        bestCost = roundTripCost;
         bestIndices = [...orderedIndices];
       }
       return;
     }
 
     for (const nextIndex of remainingIndices) {
-      const skipsEnRouteDestination = remainingIndices.some(
-        (candidateIndex) =>
-          candidateIndex !== nextIndex &&
-          liesOnRouteBefore(currentIndex, candidateIndex, nextIndex, distances),
-      );
-      if (skipsEnRouteDestination) {
+      const nextCost =
+        travelledCost +
+        legOperatingCost(
+          distances[currentIndex][nextIndex],
+          payloadKg,
+          costModel,
+        );
+      if (nextCost > bestCost) {
         continue;
       }
 
-      const nextDistance =
-        travelledDistance + distances[currentIndex][nextIndex];
-      if (nextDistance > bestDistance) {
-        continue;
-      }
-
+      const destination = destinations[nextIndex - 1];
       visit(
         nextIndex,
         remainingIndices.filter((index) => index !== nextIndex),
         [...orderedIndices, nextIndex],
-        nextDistance,
+        payloadKg - destination.deliveryWeightKg,
+        nextCost,
       );
     }
   }
@@ -145,8 +173,9 @@ export function orderByOptimalRoundTrip(
     0,
     destinations.map((_, index) => index + 1),
     [],
+    initialPayloadKg,
     0,
   );
 
-  return (bestIndices ?? []).map((index) => points[index]);
+  return (bestIndices ?? []).map((index) => destinations[index - 1]);
 }
