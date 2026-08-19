@@ -1,11 +1,11 @@
 # Backend Core Checkpoint
 
-- Current todo: live Supabase migration, ORS route verification, Backend-2 merge, and deployment.
-- Active slice: waiting for configured external services after the local backend-core implementation.
-- Completed: task-start Git snapshot; `feat/backend-core` created; NestJS skeleton; health-check; constants; Supabase owner; report DTO/stub; settlements/orders/pool/demo APIs; verified settlement seed; routing fallback; pricing; transactional trip persistence; cached trip readback.
-- Evidence refs: Git snapshot at `8e250e1a85ec31a02d2ec975c0c262c0ca117a58`; `npm test -- --runInBand` (11 suites, 14 tests); `npm run typecheck`; `npm run build`; `npm run format:check`; `npm audit --omit=dev` (all exited 0).
-- Blockers: no backend `.env`; Supabase, ORS, Gemini, and deployment credentials are absent. Git commit is also blocked by missing repository/user `user.name` and `user.email`.
-- Next step: configure `.env`, apply migrations and seed to Supabase, verify ORS against every demo destination, then run the full API flow.
+- Current todo: configure an ORS key and verify real road geometry; integrate Backend-2 and the frontend when their branches are available.
+- Active slice: Backend-1 is deployed and connected to live Supabase; remaining work depends on external owners or the missing ORS credential.
+- Completed: task-start Git snapshot; `feat/backend-core`; NestJS skeleton; public health-check; constants; live Supabase schema/seed/Realtime; report DTO/stub; settlements/orders/pool/demo APIs; routing fallback; pricing; transactional trip persistence; cached trip readback; Railway deployment; live seed → pool → trip → cached GET flow.
+- Evidence refs: Git snapshot at `8e250e1a85ec31a02d2ec975c0c262c0ca117a58`; local test suite, typecheck, build, format check and dependency audit; live API checks recorded in `90-evidence.md`.
+- Blockers: `ORS_API_KEY` is not configured; Backend-2 and frontend branches do not exist yet. Gemini integration and frontend CORS cannot be finalized by Backend-1 alone.
+- Next step: add `ORS_API_KEY`, run the road-geometry acceptance check, then integrate downstream branches when available.
 
 ## Resume State Hint
 
@@ -13,9 +13,9 @@ Resume from live integration. Preserve the four pre-existing untracked planning 
 
 ## Drift Check Draft
 
-- Scope: local implementation aligned with `plan-backend-1.md` H+0 to H+8.
+- Scope: implementation aligned with `plan-backend-1.md` H+0 to H+8 plus live Supabase and Railway deployment.
 - Compatibility: report DTO and `/api/health` match the documented contract.
 - New owners: only the planned `health`, `supabase`, and `report` modules.
-- Evidence: local unit/integration tests, typecheck, build, dependency audit, and deterministic fallback coverage.
-- External compatibility: not yet proven against live Supabase, ORS, or Backend-2.
-- Decision: needs-verification.
+- Evidence: local unit/integration tests, typecheck, build, dependency audit, deterministic fallback coverage, live Supabase persistence, and public Railway API checks.
+- External compatibility: proven against live Supabase and Railway; not yet proven against authenticated ORS, Backend-2, or frontend.
+- Decision: Backend-1 complete except for the ORS credential-dependent acceptance check.

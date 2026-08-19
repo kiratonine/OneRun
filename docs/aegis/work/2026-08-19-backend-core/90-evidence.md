@@ -25,3 +25,16 @@
 - Covered: local logic and compile-time integration.
 - Uncovered: live ORS road geometry, SQL execution in Supabase, Gemini implementation, and public deployment.
 - Confidence: B for local implementation; C for external integration until credentials are configured.
+
+## Slice 4: live Supabase and Railway integration
+
+- Fresh local verification passed: 13 suites, 16 tests, typecheck, production build, and format check.
+- Applied `0001_initial_schema.sql`, `0002_persist_trip.sql`, and `seed.sql` to the Supabase production project.
+- Verification query returned 11 settlements, zero initial orders, `orders_realtime = true`, and `persist_trip_exists = true`.
+- Public `GET https://onerun-production.up.railway.app/api/health` returned `200 {"status":"ok"}`.
+- Six live `POST /api/demo/seed` calls produced 520 kg; `GET /api/pool` returned six orders and `isReady = true`.
+- Live `POST /api/trips` persisted `TRIP-001`, routed all six orders, and allocated exactly 228475 KZT, matching rounded trip cost.
+- Repeated `GET /api/trips/:id` returned identical route geometry and report content without a new routing/report call.
+- Covered: production database schema, Realtime publication membership, demo threshold, transactional persistence, public deployment, and cached readback.
+- Uncovered: authenticated ORS road geometry (no `ORS_API_KEY`), Gemini/Backend-2, frontend Realtime rendering, and final CORS origin.
+- Confidence: A for the live Backend-1 fallback path; C for the remaining external-owner integrations.

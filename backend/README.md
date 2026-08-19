@@ -2,6 +2,12 @@
 
 NestJS API for the «Сводный рейс» demo.
 
+## Deployment
+
+- Production API: `https://onerun-production.up.railway.app/api`
+- Health-check: `https://onerun-production.up.railway.app/api/health`
+- Railway deploys the `feat/backend-core` branch with `backend/` as the service root.
+
 ## Local setup
 
 ```bash
@@ -30,6 +36,11 @@ Create a Supabase project, then apply SQL files in this order:
 - `CORS_ORIGINS` — comma-separated frontend origins.
 - `PORT` — HTTP port, defaults to `3000`.
 - `LLM_PROVIDER`, `GEMINI_API_KEY` — consumed by the Backend-2 report module.
+
+If `ORS_API_KEY` is absent or OpenRouteService cannot build a route, the
+routing module returns deterministic straight-line geometry and applies the
+configured detour factor. Add the ORS key in Railway before the final road
+geometry acceptance check.
 
 ## Verification
 
