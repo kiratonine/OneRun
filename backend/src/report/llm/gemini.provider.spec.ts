@@ -30,7 +30,9 @@ const validGeminiReport = `# Отчёт
 240 км
 
 ## Экономический эффект
-20 км, 3570 ₸, 520 кг, 178.5 ₸/км
+- Сэкономлено: 20 км, 3570 ₸
+- Общий вес груза: 520 кг
+- Стоимость километра: 178.5 ₸/км
 
 ## Особые замечания
 Нет`;
@@ -183,5 +185,32 @@ describe('GeminiProvider', () => {
       '| Очерёдность загрузки | Заявка | Посёлок | Груз | Вес | Места | Размещение |',
     );
     expect(result.contentMd).not.toContain('| loadPosition | code | toName |');
+  });
+
+  it('returns the localized fallback when Gemini exposes technical field names as economic labels', async () => {
+    jest.spyOn(axios, 'post').mockResolvedValue({
+      data: {
+        candidates: [
+          {
+            content: {
+              parts: [
+                {
+                  text: validGeminiReport
+                    .replace('Общий вес груза', 'totalWeightKg')
+                    .replace('Стоимость километра', 'costPerKmKzt'),
+                },
+              ],
+            },
+          },
+        ],
+      },
+    });
+
+    const result = await new GeminiProvider().generate(summary);
+
+    expect(result.source).toBe('mock');
+    expect(result.contentMd).toContain('Расчётная себестоимость');
+    expect(result.contentMd).not.toContain('totalWeightKg');
+    expect(result.contentMd).not.toContain('costPerKmKzt');
   });
 });
