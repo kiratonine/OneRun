@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 
-import { buttonVariants } from '@/components/ui/button';
+import { buttonVariants } from '@/components/ui/button-variants';
 import { formatKm, formatKzt, formatNumber, pluralRu } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import type { Trip } from '@/api/types';
