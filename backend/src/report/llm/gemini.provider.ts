@@ -65,6 +65,18 @@ function hasRequiredNumbers(content: string, summary: TripSummaryDto): boolean {
   );
 }
 
+const REQUIRED_REPORT_SECTIONS = [
+  'Маршрут следования',
+  'План погрузки',
+  'Стоимость по заявкам',
+  'Экономический эффект',
+  'Особые замечания',
+] as const;
+
+function hasRequiredSections(content: string): boolean {
+  return REQUIRED_REPORT_SECTIONS.every((section) => content.includes(section));
+}
+
 function errorReason(error: unknown): string {
   if (axios.isAxiosError(error)) {
     return `HTTP status=${error.response?.status ?? 'none'} code=${error.code ?? 'none'}`;
@@ -114,6 +126,9 @@ export class GeminiProvider implements LlmProvider {
       }
       if (!hasRequiredNumbers(contentMd, summary)) {
         throw new Error('Gemini response omitted required numeric values');
+      }
+      if (!hasRequiredSections(contentMd)) {
+        throw new Error('Gemini response omitted required report sections');
       }
 
       return { contentMd, raw: data, source: 'gemini' };

@@ -45,7 +45,7 @@ describe('GeminiProvider', () => {
           content: {
             parts: [
               {
-                text: '```markdown\n# Отчёт\n\n220 км, 240 км, 20 км, 3570 ₸, 520 кг, 178.5 ₸/км\n```',
+                text: '```markdown\n# Отчёт\n\n## Маршрут следования\n220 км\n\n## План погрузки\n520 кг\n\n## Стоимость по заявкам\n240 км\n\n## Экономический эффект\n20 км, 3570 ₸, 178.5 ₸/км\n\n## Особые замечания\nНет\n```',
               },
             ],
           },
@@ -59,7 +59,8 @@ describe('GeminiProvider', () => {
     const result = await new GeminiProvider().generate(summary);
 
     expect(result).toEqual({
-      contentMd: '# Отчёт\n\n220 км, 240 км, 20 км, 3570 ₸, 520 кг, 178.5 ₸/км',
+      contentMd:
+        '# Отчёт\n\n## Маршрут следования\n220 км\n\n## План погрузки\n520 кг\n\n## Стоимость по заявкам\n240 км\n\n## Экономический эффект\n20 км, 3570 ₸, 178.5 ₸/км\n\n## Особые замечания\nНет',
       raw: response,
       source: 'gemini',
     });
@@ -106,5 +107,28 @@ describe('GeminiProvider', () => {
 
     expect(result.source).toBe('mock');
     expect(result.contentMd).toContain('# План рейса TRIP-001');
+  });
+
+  it('returns the fallback report when Gemini omits required sections', async () => {
+    jest.spyOn(axios, 'post').mockResolvedValue({
+      data: {
+        candidates: [
+          {
+            content: {
+              parts: [
+                {
+                  text: '# Неполный отчёт\n\n220 км, 240 км, 20 км, 3570 ₸, 520 кг, 178.5 ₸/км',
+                },
+              ],
+            },
+          },
+        ],
+      },
+    });
+
+    const result = await new GeminiProvider().generate(summary);
+
+    expect(result.source).toBe('mock');
+    expect(result.contentMd).toContain('## Маршрут следования');
   });
 });
