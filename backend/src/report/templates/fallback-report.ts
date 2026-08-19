@@ -35,21 +35,35 @@ function describePlacement(
 }
 
 function buildSpecialNotes(orders: TripSummaryOrderDto[]): string[] {
-  const cargoNames = orders.map(({ cargoName }) => cargoName.toLowerCase());
+  const cargoDescriptions = orders.map(({ cargoName, boxNote }) =>
+    `${cargoName} ${boxNote ?? ''}`.toLowerCase(),
+  );
   const notes: string[] = [];
 
   if (
-    cargoNames.some((name) => /продукт|пищ|еда/.test(name)) &&
-    cargoNames.some((name) => /строй|цемент|краск|хими/.test(name))
+    cargoDescriptions.some((description) =>
+      /продукт|пищ|еда/.test(description),
+    ) &&
+    cargoDescriptions.some((description) =>
+      /строй|цемент|краск|хими/.test(description),
+    )
   ) {
     notes.push(
       'Продукты и строительные материалы необходимо физически разделить и защитить от пыли и запахов.',
     );
   }
-  if (cargoNames.some((name) => /хруп|стекл|посуд/.test(name))) {
+  if (
+    cargoDescriptions.some((description) =>
+      /хруп|стекл|посуд/.test(description),
+    )
+  ) {
     notes.push('Хрупкий груз размещать сверху и закрепить от смещения.');
   }
-  if (cargoNames.some((name) => /скоропорт|охлажд|заморож/.test(name))) {
+  if (
+    cargoDescriptions.some((description) =>
+      /скоропорт|охлажд|заморож/.test(description),
+    )
+  ) {
     notes.push(
       'Скоропортящийся груз держать ближе к выходу и не нарушать температурный режим.',
     );

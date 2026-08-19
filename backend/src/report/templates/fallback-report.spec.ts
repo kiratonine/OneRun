@@ -91,4 +91,37 @@ describe('buildFallbackReport', () => {
 
     expect(buildFallbackReport(summary)).toContain('ORD\\|001');
   });
+
+  it('uses box notes when generating fragile cargo guidance', () => {
+    const summary: TripSummaryDto = {
+      tripCode: 'TRIP-FRAGILE',
+      hubName: 'Актау',
+      stopOrder: ['Актау', 'Курык', 'Актау'],
+      totalDistanceKm: 150,
+      soloDistanceKm: 180,
+      savedDistanceKm: 30,
+      savedCostKzt: 5355,
+      totalWeightKg: 95,
+      costPerKmKzt: 178.5,
+      orders: [
+        {
+          code: 'ORD-004',
+          shipperName: 'ИП Құрық Сервис',
+          toName: 'Курык',
+          cargoName: 'Бытовая техника',
+          weightKg: 95,
+          boxesCount: 5,
+          boxNote: 'Хрупкий груз, не кантовать',
+          dropIndex: 1,
+          loadPosition: 1,
+          priceKzt: 26_775,
+          legDistanceKm: 90,
+        },
+      ],
+    };
+
+    expect(buildFallbackReport(summary)).toContain(
+      'Хрупкий груз размещать сверху и закрепить от смещения.',
+    );
+  });
 });
