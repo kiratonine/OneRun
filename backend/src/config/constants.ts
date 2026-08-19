@@ -9,6 +9,7 @@ export const COST_PER_KM_KZT =
   DIESEL_PRICE_KZT_PER_L *
   OVERHEAD_MULTIPLIER;
 export const LOAD_COST_PER_TONNE_KM_KZT = 3;
+export const DELIVERY_DELAY_COST_PER_ORDER_KM_KZT = 0.1;
 
 export const ORS_BASE_URL = 'https://api.heigit.org/openrouteservice/v2';
 export const ORS_PROFILE = 'driving-hgv';

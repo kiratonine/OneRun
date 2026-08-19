@@ -18,6 +18,7 @@ const destinations: RoutingDestination[] = [
     lat: 43.7831766,
     lon: 51.0605022,
     deliveryWeightKg: 80,
+    deliveryOrderCount: 1,
   },
   {
     code: 'SHETPE',
@@ -25,13 +26,15 @@ const destinations: RoutingDestination[] = [
     lat: 44.1413139,
     lon: 52.1556413,
     deliveryWeightKg: 120,
+    deliveryOrderCount: 1,
   },
   {
     code: 'BEINEU',
     nameRu: 'Beineu',
     lat: 45.321377,
     lon: 55.186226,
-    deliveryWeightKg: 140,
+    deliveryWeightKg: 55,
+    deliveryOrderCount: 1,
   },
   {
     code: 'ZHANAOZEN',
@@ -39,6 +42,7 @@ const destinations: RoutingDestination[] = [
     lat: 43.3381034,
     lon: 52.8556219,
     deliveryWeightKg: 110,
+    deliveryOrderCount: 1,
   },
   {
     code: 'KURYK',
@@ -46,6 +50,7 @@ const destinations: RoutingDestination[] = [
     lat: 43.176664,
     lon: 51.6796799,
     deliveryWeightKg: 95,
+    deliveryOrderCount: 1,
   },
   {
     code: 'ZHETYBAI',
@@ -53,6 +58,7 @@ const destinations: RoutingDestination[] = [
     lat: 43.5883652,
     lon: 52.1014626,
     deliveryWeightKg: 60,
+    deliveryOrderCount: 1,
   },
 ];
 
@@ -82,6 +88,7 @@ describe('routing utilities', () => {
       orderByLowestOperatingCost(hub, destinations, roadDistancesKm, {
         costPerKmKzt: 178.5,
         loadCostPerTonneKmKzt: 0,
+        deliveryDelayCostPerOrderKmKzt: 0,
       }).map(({ code }) => code),
     ).toEqual([
       'AKSHUKUR',
@@ -93,11 +100,13 @@ describe('routing utilities', () => {
     ]);
   });
 
-  it('keeps a light nearby delivery for the return leg when that costs less overall', () => {
+  it('keeps a light nearby delivery for the return leg when delivery delay has no cost', () => {
     expect(
-      orderByLowestOperatingCost(hub, destinations, roadDistancesKm).map(
-        ({ code }) => code,
-      ),
+      orderByLowestOperatingCost(hub, destinations, roadDistancesKm, {
+        costPerKmKzt: 178.5,
+        loadCostPerTonneKmKzt: 3,
+        deliveryDelayCostPerOrderKmKzt: 0,
+      }).map(({ code }) => code),
     ).toEqual([
       'KURYK',
       'ZHANAOZEN',
@@ -105,6 +114,21 @@ describe('routing utilities', () => {
       'SHETPE',
       'BEINEU',
       'AKSHUKUR',
+    ]);
+  });
+
+  it('serves the nearby delivery first when its waiting cost outweighs the marginal load cost', () => {
+    expect(
+      orderByLowestOperatingCost(hub, destinations, roadDistancesKm).map(
+        ({ code }) => code,
+      ),
+    ).toEqual([
+      'AKSHUKUR',
+      'ZHANAOZEN',
+      'ZHETYBAI',
+      'SHETPE',
+      'BEINEU',
+      'KURYK',
     ]);
   });
 });

@@ -56,6 +56,7 @@ export class TripsService {
       orders.map((order) => ({
         ...this.toRoutingPoint(order.to),
         deliveryWeightKg: order.weightKg,
+        deliveryOrderCount: 1,
       })),
     );
     const pricing = this.pricingService.calculate(

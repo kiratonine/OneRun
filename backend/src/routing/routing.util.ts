@@ -1,5 +1,6 @@
 import {
   COST_PER_KM_KZT,
+  DELIVERY_DELAY_COST_PER_ORDER_KM_KZT,
   EARTH_RADIUS_KM,
   LOAD_COST_PER_TONNE_KM_KZT,
 } from '../config/constants';
@@ -32,11 +33,13 @@ type DistanceMatrix = ReadonlyArray<ReadonlyArray<number>>;
 export interface RoutingCostModel {
   costPerKmKzt: number;
   loadCostPerTonneKmKzt: number;
+  deliveryDelayCostPerOrderKmKzt: number;
 }
 
 const DEFAULT_ROUTING_COST_MODEL: RoutingCostModel = {
   costPerKmKzt: COST_PER_KM_KZT,
   loadCostPerTonneKmKzt: LOAD_COST_PER_TONNE_KM_KZT,
+  deliveryDelayCostPerOrderKmKzt: DELIVERY_DELAY_COST_PER_ORDER_KM_KZT,
 };
 
 function haversineDistanceMatrix(points: RoutingPoint[]): number[][] {
@@ -69,29 +72,38 @@ function assertCostInputs(
     !Number.isFinite(costModel.costPerKmKzt) ||
     costModel.costPerKmKzt < 0 ||
     !Number.isFinite(costModel.loadCostPerTonneKmKzt) ||
-    costModel.loadCostPerTonneKmKzt < 0
+    costModel.loadCostPerTonneKmKzt < 0 ||
+    !Number.isFinite(costModel.deliveryDelayCostPerOrderKmKzt) ||
+    costModel.deliveryDelayCostPerOrderKmKzt < 0
   ) {
     throw new Error('Routing cost values must be finite and non-negative');
   }
 
   if (
     destinations.some(
-      ({ deliveryWeightKg }) =>
-        !Number.isFinite(deliveryWeightKg) || deliveryWeightKg < 0,
+      ({ deliveryWeightKg, deliveryOrderCount }) =>
+        !Number.isFinite(deliveryWeightKg) ||
+        deliveryWeightKg < 0 ||
+        !Number.isInteger(deliveryOrderCount) ||
+        deliveryOrderCount < 1,
     )
   ) {
-    throw new Error('Delivery weights must be finite and non-negative');
+    throw new Error('Delivery demand values are invalid');
   }
 }
 
 function legOperatingCost(
   distanceKm: number,
   payloadKg: number,
+  outstandingOrderCount: number,
   costModel: RoutingCostModel,
 ): number {
   return (
     distanceKm * costModel.costPerKmKzt +
-    distanceKm * (payloadKg / 1000) * costModel.loadCostPerTonneKmKzt
+    distanceKm * (payloadKg / 1000) * costModel.loadCostPerTonneKmKzt +
+    distanceKm *
+      outstandingOrderCount *
+      costModel.deliveryDelayCostPerOrderKmKzt
   );
 }
 
@@ -116,18 +128,28 @@ export function orderByLowestOperatingCost(
     (sum, { deliveryWeightKg }) => sum + deliveryWeightKg,
     0,
   );
+  const initialOrderCount = destinations.reduce(
+    (sum, { deliveryOrderCount }) => sum + deliveryOrderCount,
+    0,
+  );
 
   function visit(
     currentIndex: number,
     remainingIndices: number[],
     orderedIndices: number[],
     payloadKg: number,
+    outstandingOrderCount: number,
     travelledCost: number,
   ): void {
     if (remainingIndices.length === 0) {
       const roundTripCost =
         travelledCost +
-        legOperatingCost(distances[currentIndex][0], payloadKg, costModel);
+        legOperatingCost(
+          distances[currentIndex][0],
+          payloadKg,
+          outstandingOrderCount,
+          costModel,
+        );
       const candidateCodes = orderedIndices
         .map((index) => points[index].code)
         .join('\u0000');
@@ -152,6 +174,7 @@ export function orderByLowestOperatingCost(
         legOperatingCost(
           distances[currentIndex][nextIndex],
           payloadKg,
+          outstandingOrderCount,
           costModel,
         );
       if (nextCost > bestCost) {
@@ -164,6 +187,7 @@ export function orderByLowestOperatingCost(
         remainingIndices.filter((index) => index !== nextIndex),
         [...orderedIndices, nextIndex],
         payloadKg - destination.deliveryWeightKg,
+        outstandingOrderCount - destination.deliveryOrderCount,
         nextCost,
       );
     }
@@ -174,6 +198,7 @@ export function orderByLowestOperatingCost(
     destinations.map((_, index) => index + 1),
     [],
     initialPayloadKg,
+    initialOrderCount,
     0,
   );
 

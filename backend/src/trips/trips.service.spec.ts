@@ -205,10 +205,12 @@ describe('TripsService', () => {
         expect.objectContaining({
           code: 'SHETPE',
           deliveryWeightKg: 260,
+          deliveryOrderCount: 1,
         }),
         expect.objectContaining({
           code: 'BEINEU',
           deliveryWeightKg: 260,
+          deliveryOrderCount: 1,
         }),
       ],
     );

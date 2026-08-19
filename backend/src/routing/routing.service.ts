@@ -69,6 +69,8 @@ export class RoutingService {
               ...existing,
               deliveryWeightKg:
                 existing.deliveryWeightKg + destination.deliveryWeightKg,
+              deliveryOrderCount:
+                existing.deliveryOrderCount + destination.deliveryOrderCount,
             }
           : destination,
       );

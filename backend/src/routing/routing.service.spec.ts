@@ -25,6 +25,7 @@ describe('RoutingService', () => {
         lat: 44.1413139,
         lon: 52.1556413,
         deliveryWeightKg: 520,
+        deliveryOrderCount: 1,
       },
     ]);
 
@@ -72,9 +73,30 @@ describe('RoutingService', () => {
     });
     const service = new RoutingService();
     const destinations: RoutingDestination[] = [
-      { code: 'A', nameRu: 'A', lat: 43.7, lon: 51.2, deliveryWeightKg: 0 },
-      { code: 'B', nameRu: 'B', lat: 43.8, lon: 51.3, deliveryWeightKg: 0 },
-      { code: 'C', nameRu: 'C', lat: 43.9, lon: 51.4, deliveryWeightKg: 0 },
+      {
+        code: 'A',
+        nameRu: 'A',
+        lat: 43.7,
+        lon: 51.2,
+        deliveryWeightKg: 0,
+        deliveryOrderCount: 1,
+      },
+      {
+        code: 'B',
+        nameRu: 'B',
+        lat: 43.8,
+        lon: 51.3,
+        deliveryWeightKg: 0,
+        deliveryOrderCount: 1,
+      },
+      {
+        code: 'C',
+        nameRu: 'C',
+        lat: 43.9,
+        lon: 51.4,
+        deliveryWeightKg: 0,
+        deliveryOrderCount: 1,
+      },
     ];
 
     const result = await service.buildRoute(hub, destinations);

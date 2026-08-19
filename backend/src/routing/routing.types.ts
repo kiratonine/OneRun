@@ -9,6 +9,7 @@ export interface RoutingPoint {
 
 export interface RoutingDestination extends RoutingPoint {
   deliveryWeightKg: number;
+  deliveryOrderCount: number;
 }
 
 export interface LineStringGeometry {
