@@ -31,6 +31,13 @@ export const ORDER_LINE_COLORS = [
 
 export const ORDER_LINE_WIDTH = 3;
 export const ORDER_LINE_OPACITY = 0.85;
+/** Ширина выбранной линии — клик по ней должен быть виден на карте, а не только в модалке. */
+export const ORDER_LINE_SELECTED_WIDTH = 6;
+/**
+ * Ширина невидимого слоя-мишени. В трёхпиксельную линию на проекторе не попасть,
+ * поэтому клик ловит прозрачный слой поверх той же геометрии.
+ */
+export const ORDER_LINE_HIT_WIDTH = 18;
 /** Прозрачность линий заявок после построения рейса — они приглушаются, но не удаляются. */
 export const ORDER_LINE_DIMMED_OPACITY = 0.25;
 export const ROUTE_LINE_WIDTH = 6;

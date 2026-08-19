@@ -7,7 +7,9 @@ import type { Settlement } from '@/api/types';
 import { useMap } from './MapContext';
 
 const SOURCE_ID = 'settlements';
-const CIRCLE_LAYER_ID = 'settlements-circle';
+/** Экспортируется, чтобы линии заявок вставлялись под кружки посёлков, а не поверх них. */
+export const SETTLEMENT_CIRCLE_LAYER_ID = 'settlements-circle';
+const CIRCLE_LAYER_ID = SETTLEMENT_CIRCLE_LAYER_ID;
 const LABEL_LAYER_ID = 'settlements-label';
 
 /** Хаб выделяется размером и цветом — из него выходят все рейсы. */
