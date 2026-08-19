@@ -1,0 +1,58 @@
+import { CreateOrderDto } from '../orders/order.types';
+
+export const DEMO_ORDERS: readonly CreateOrderDto[] = [
+  {
+    fromCode: 'AKTAU',
+    toCode: 'AKSHUKUR',
+    shipperName: 'Магазин Береке',
+    cargoName: 'Продукты питания',
+    weightKg: 80,
+    boxesCount: 8,
+    boxNote: '8 коробок по 10 кг',
+  },
+  {
+    fromCode: 'AKTAU',
+    toCode: 'SHETPE',
+    shipperName: 'ТОО Шетпе Құрылыс',
+    cargoName: 'Стройматериалы',
+    weightKg: 120,
+    boxesCount: 6,
+    boxNote: '6 мешков по 20 кг',
+  },
+  {
+    fromCode: 'AKTAU',
+    toCode: 'ZHETYBAI',
+    shipperName: 'СТО Жетыбай',
+    cargoName: 'Запчасти',
+    weightKg: 60,
+    boxesCount: 3,
+    boxNote: '3 ящика по 20 кг',
+  },
+  {
+    fromCode: 'AKTAU',
+    toCode: 'KURYK',
+    shipperName: 'ИП Құрық Сервис',
+    cargoName: 'Бытовая техника',
+    weightKg: 95,
+    boxesCount: 5,
+    boxNote: 'Хрупкий груз, не кантовать',
+  },
+  {
+    fromCode: 'AKTAU',
+    toCode: 'ZHANAOZEN',
+    shipperName: 'Маркет Жаңаөзен',
+    cargoName: 'Продукты питания',
+    weightKg: 110,
+    boxesCount: 11,
+    boxNote: '11 коробок по 10 кг',
+  },
+  {
+    fromCode: 'AKTAU',
+    toCode: 'BEINEU',
+    shipperName: 'ИП Бейнеу Строй',
+    cargoName: 'Стройматериалы',
+    weightKg: 55,
+    boxesCount: 5,
+    boxNote: '5 упаковок по 11 кг',
+  },
+] as const;
