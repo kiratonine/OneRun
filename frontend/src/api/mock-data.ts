@@ -8,6 +8,7 @@
  */
 
 import { ORDER_LINE_COLORS } from '@/config/constants';
+import { formatKg, formatKm, formatKzt } from '@/lib/format';
 import type { Order, PoolStatus, Settlement, Trip, TripOrderLine } from './types';
 
 const HUB_CODE = 'AKTAU';
@@ -313,7 +314,7 @@ export function buildMockTrip(orders: Order[]): Trip {
   const soloDistanceKm = legs.reduce((sum, leg) => sum + leg.legDistanceKm * 2, 0);
   const savedDistanceKm = soloDistanceKm - totalDistanceKm;
 
-  return {
+  const trip: Trip = {
     id: 'mock-trip-1',
     code: 'TRIP-001',
     stopOrder: stops.map((stop) => stop.code),
@@ -327,7 +328,66 @@ export function buildMockTrip(orders: Order[]): Trip {
     savedCostKzt: Math.round(savedDistanceKm * COST_PER_KM_KZT),
     totalWeightKg: orders.reduce((sum, order) => sum + order.weightKg, 0),
     orders: tripOrders,
-    report: '## Отчёт по рейсу TRIP-001\n\n_Заглушка мока. Приходит с бэкенда._',
+    report: '',
     reportSource: 'mock',
   };
+
+  return { ...trip, report: buildMockReport(trip, orders) };
+}
+
+/**
+ * Отчёт мока. На бэкенде его пишет Gemini, но подстраховка нужна: если модель
+ * не ответит, вкладка «Отчёт» должна показывать документ, а не пустоту.
+ * Заодно на нём проверяется типографика — здесь есть заголовки, списки и таблица.
+ */
+function buildMockReport(trip: Trip, orders: Order[]): string {
+  const orderByCode = new Map(orders.map((order) => [order.code, order]));
+  const savedPercent =
+    trip.soloDistanceKm > 0 ? Math.round((trip.savedDistanceKm / trip.soloDistanceKm) * 100) : 0;
+  const routeText = trip.stopOrder.map((code) => settlement(code).nameRu).join(' → ');
+
+  const tableRows = [...trip.orders]
+    .sort((a, b) => a.dropIndex - b.dropIndex)
+    .map((line) => {
+      const order = orderByCode.get(line.orderCode);
+      const to = order ? order.to.nameRu : line.orderCode;
+      const weight = order ? formatKg(order.weightKg) : '—';
+      return `| ${line.dropIndex} | ${to} | ${line.orderCode} | ${weight} | ${formatKm(line.legDistanceKm)} | ${formatKzt(line.priceKzt)} |`;
+    });
+
+  // Погрузка обратна выгрузке: то, что снимут первым, ставят у дверей последним.
+  const loadingSteps = [...trip.orders]
+    .sort((a, b) => b.loadPosition - a.loadPosition)
+    .map((line, index) => {
+      const order = orderByCode.get(line.orderCode);
+      const to = order ? order.to.nameRu : line.orderCode;
+      const cargo = order ? `${order.cargoName.toLowerCase()}, ${formatKg(order.weightKg)}` : '';
+      return `${index + 1}. **${line.orderCode}** → ${to} (${cargo})`;
+    });
+
+  return [
+    `## Сводный рейс ${trip.code}`,
+    '',
+    `Маршрут: **${routeText}**. В машине ${orders.length} заявок общим весом ${formatKg(trip.totalWeightKg)}, пробег — ${formatKm(trip.totalDistanceKm)}.`,
+    '',
+    '### Порядок погрузки',
+    '',
+    'Грузим в обратном порядке к выгрузке: то, что снимут первым, ставим у дверей последним.',
+    '',
+    ...loadingSteps,
+    '',
+    '### Маршрут и выгрузка',
+    '',
+    '| № | Посёлок | Заявка | Вес | Плечо | Стоимость |',
+    '| --- | --- | --- | --- | --- | --- |',
+    ...tableRows,
+    '',
+    '### Экономика',
+    '',
+    `- Отдельными рейсами: **${formatKm(trip.soloDistanceKm)}**`,
+    `- Сводным рейсом: **${formatKm(trip.totalDistanceKm)}**`,
+    `- Экономия: **${formatKm(trip.savedDistanceKm)}** (${savedPercent}%), в деньгах — **${formatKzt(trip.savedCostKzt)}**`,
+    '',
+    '> Черновик: отчёт составлен локально, без обращения к модели.',
+  ].join('\n');
 }

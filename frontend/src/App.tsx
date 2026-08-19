@@ -4,6 +4,7 @@ import { MapPage } from '@/routes/MapPage';
 import { OrdersPage } from '@/routes/OrdersPage';
 import { ReportPage } from '@/routes/ReportPage';
 import { DemoPage } from '@/routes/DemoPage';
+import { CurrentTripProvider } from '@/features/trip/CurrentTripProvider';
 import { USE_MOCK_API } from '@/config/constants';
 import { cn } from '@/lib/utils';
 
@@ -62,11 +63,14 @@ function Shell() {
 
 export function App() {
   return (
-    <Routes>
-      {/* /demo — отдельный полноэкранный роут без шапки: им управляют с телефона. */}
-      <Route path="/demo" element={<DemoPage />} />
-      <Route path="*" element={<Shell />} />
-    </Routes>
+    // Рейс общий для всех вкладок: строят его на карте, показывают ещё в заявках и отчёте.
+    <CurrentTripProvider>
+      <Routes>
+        {/* /demo — отдельный полноэкранный роут без шапки: им управляют с телефона. */}
+        <Route path="/demo" element={<DemoPage />} />
+        <Route path="*" element={<Shell />} />
+      </Routes>
+    </CurrentTripProvider>
   );
 }
 

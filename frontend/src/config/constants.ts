@@ -42,6 +42,19 @@ export const ORDER_LINE_HIT_WIDTH = 18;
 export const ORDER_LINE_DIMMED_OPACITY = 0.25;
 export const ROUTE_LINE_WIDTH = 6;
 export const ROUTE_LINE_COLOR = '#0f172a';
+export const ROUTE_LINE_OPACITY = 0.95;
+/** Белая обводка под маршрутом: тёмная ломаная иначе теряется на тёмных участках стиля. */
+export const ROUTE_LINE_CASING_COLOR = '#ffffff';
+export const ROUTE_LINE_CASING_WIDTH = ROUTE_LINE_WIDTH + 4;
+/** Кружки с номерами остановок рисуются поверх всего — их читают с проектора. */
+export const TRIP_STOP_CIRCLE_RADIUS = 11;
+export const TRIP_STOP_LABEL_SIZE = 12;
+
+/**
+ * Ключ для id построенного рейса в localStorage. Списка рейсов в контракте нет,
+ * поэтому после перезагрузки страницы восстановить рейс можно только по id.
+ */
+export const CURRENT_TRIP_STORAGE_KEY = 'onerun.currentTripId';
 
 export const DEMO_ORDER_INTERVAL_MS = 1500;
 export const DEMO_ORDERS_COUNT = 6;

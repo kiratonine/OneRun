@@ -3,6 +3,7 @@ import type maplibregl from 'maplibre-gl';
 import type { FeatureCollection } from 'geojson';
 
 import {
+  ORDER_LINE_DIMMED_OPACITY,
   ORDER_LINE_HIT_WIDTH,
   ORDER_LINE_OPACITY,
   ORDER_LINE_SELECTED_WIDTH,
@@ -49,9 +50,27 @@ function lineWidthPaint(selectedOrderCode: string | null) {
   ];
 }
 
+/**
+ * Прозрачность линий. После построения рейса заявки приглушаются, чтобы маршрут
+ * читался поверх них, — но выбранная линия остаётся яркой: иначе непонятно,
+ * про какую заявку открыта модалка.
+ */
+function lineOpacityPaint(selectedOrderCode: string | null, isDimmed: boolean) {
+  if (!isDimmed) return ORDER_LINE_OPACITY;
+  if (!selectedOrderCode) return ORDER_LINE_DIMMED_OPACITY;
+  return [
+    'case',
+    ['==', ['get', 'orderCode'], selectedOrderCode],
+    ORDER_LINE_OPACITY,
+    ORDER_LINE_DIMMED_OPACITY,
+  ];
+}
+
 interface UseOrderLinesOptions {
   selectedOrderCode: string | null;
   onSelectOrder: (orderCode: string) => void;
+  /** Рейс построен: линии заявок уходят на второй план, но не исчезают. */
+  isDimmed?: boolean;
 }
 
 /**
@@ -60,7 +79,7 @@ interface UseOrderLinesOptions {
  */
 export function useOrderLines(
   orders: Order[] | undefined,
-  { selectedOrderCode, onSelectOrder }: UseOrderLinesOptions,
+  { selectedOrderCode, onSelectOrder, isDimmed = false }: UseOrderLinesOptions,
 ) {
   const map = useMap();
 
@@ -149,5 +168,6 @@ export function useOrderLines(
   useEffect(() => {
     if (!map?.getLayer(LINE_LAYER_ID)) return;
     map.setPaintProperty(LINE_LAYER_ID, 'line-width', lineWidthPaint(selectedOrderCode));
-  }, [map, selectedOrderCode, orders]);
+    map.setPaintProperty(LINE_LAYER_ID, 'line-opacity', lineOpacityPaint(selectedOrderCode, isDimmed));
+  }, [map, selectedOrderCode, isDimmed, orders]);
 }

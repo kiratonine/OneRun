@@ -8,15 +8,15 @@ interface PoolCounterProps {
   pool: PoolStatus | undefined;
   onBuildTrip?: () => void;
   isBuilding?: boolean;
-  /** Код построенного рейса. Пока его нет — на месте плашки живёт кнопка. */
-  tripCode?: string | null;
+  /** Рейс уже построен: кнопку сменяет панель экономики, её рисует страница. */
+  hasTrip?: boolean;
 }
 
 /**
  * Счётчик пула. Переход через порог — кульминация демо, поэтому панель
  * меняет цвет целиком, а кнопка не просто появляется, а въезжает снизу.
  */
-export function PoolCounter({ pool, onBuildTrip, isBuilding, tripCode }: PoolCounterProps) {
+export function PoolCounter({ pool, onBuildTrip, isBuilding, hasTrip }: PoolCounterProps) {
   if (!pool) {
     return (
       <div className="w-full rounded-lg border bg-background/95 p-3 text-sm text-muted-foreground shadow-sm backdrop-blur">
@@ -76,13 +76,7 @@ export function PoolCounter({ pool, onBuildTrip, isBuilding, tripCode }: PoolCou
           : `До порога ещё ${formatKg(remainingKg)}`}
       </p>
 
-      {isReady && tripCode && (
-        <p className="mt-3 rounded-md border border-emerald-500/40 bg-emerald-500/10 px-2.5 py-1.5 text-center text-xs font-medium text-emerald-700 dark:text-emerald-400">
-          Рейс {tripCode} построен
-        </p>
-      )}
-
-      {isReady && !tripCode && (
+      {isReady && !hasTrip && (
         <Button
           size="lg"
           className="mt-3 w-full animate-in fade-in slide-in-from-bottom-2 duration-500"
