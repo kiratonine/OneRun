@@ -35,6 +35,10 @@ export class PricingService {
       (sum, value) => sum + value,
       0,
     );
+    const lastDropIndex = Math.max(
+      0,
+      ...orders.map(({ dropIndex }) => dropIndex),
+    );
     let allocatedCost = 0;
 
     const pricedOrders = orders.map((order, index) => {
@@ -48,7 +52,7 @@ export class PricingService {
 
       return {
         ...order,
-        loadPosition: order.dropIndex,
+        loadPosition: lastDropIndex - order.dropIndex + 1,
         priceKzt,
       };
     });

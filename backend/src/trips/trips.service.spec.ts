@@ -80,7 +80,7 @@ describe('TripsService', () => {
         weightKg: 260,
         legDistanceKm: 100,
         dropIndex: 1,
-        loadPosition: 1,
+        loadPosition: 2,
         priceKzt: 30_000,
       },
       {
@@ -88,7 +88,7 @@ describe('TripsService', () => {
         weightKg: 260,
         legDistanceKm: 500,
         dropIndex: 2,
-        loadPosition: 2,
+        loadPosition: 1,
         priceKzt: 112_800,
       },
     ];

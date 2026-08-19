@@ -14,7 +14,7 @@ describe('PricingService', () => {
       Math.round(812 * COST_PER_KM_KZT),
     );
     expect(result.orders.map(({ loadPosition }) => loadPosition)).toEqual([
-      1, 2,
+      2, 1,
     ]);
     expect(result.orders[1].priceKzt).toBeGreaterThan(
       result.orders[0].priceKzt,
