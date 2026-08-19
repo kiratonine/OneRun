@@ -7,6 +7,7 @@ import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import './index.css';
 import App from './App.tsx';
 import { ThemeProvider } from '@/components/theme-provider.tsx';
+import { THEME_STORAGE_KEY } from '@/config/constants';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -20,7 +21,11 @@ const queryClient = new QueryClient({
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <ThemeProvider>
+    {/*
+      Тема жёстко светлая. Стиль карты (OpenFreeMap Liberty) светлый всегда, и тёмная
+      шапка поверх светлой карты — это лотерея по настройкам чужого ноутбука на питче.
+    */}
+    <ThemeProvider defaultTheme="light" storageKey={THEME_STORAGE_KEY}>
       <QueryClientProvider client={queryClient}>
         <BrowserRouter>
           <App />

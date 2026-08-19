@@ -366,7 +366,8 @@ function buildMockReport(trip: Trip, orders: Order[]): string {
     });
 
   return [
-    `## Сводный рейс ${trip.code}`,
+    // Не «Рейс TRIP-001»: ровно это уже написано в шапке страницы отчёта.
+    `## Отчёт по рейсу ${trip.code}`,
     '',
     `Маршрут: **${routeText}**. В машине ${orders.length} заявок общим весом ${formatKg(trip.totalWeightKg)}, пробег — ${formatKm(trip.totalDistanceKm)}.`,
     '',

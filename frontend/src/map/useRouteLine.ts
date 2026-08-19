@@ -1,9 +1,12 @@
-import { useEffect } from 'react';
-import type maplibregl from 'maplibre-gl';
+import { useEffect, useRef } from 'react';
+import maplibregl from 'maplibre-gl';
 import type { Feature, FeatureCollection } from 'geojson';
 
 import {
+  MAP_FIT_MAX_ZOOM,
   MAP_LABEL_FONT,
+  MAP_ROUTE_FIT_DURATION_MS,
+  mapRouteFitPadding,
   ROUTE_LINE_CASING_COLOR,
   ROUTE_LINE_CASING_WIDTH,
   ROUTE_LINE_COLOR,
@@ -66,6 +69,14 @@ function toStopsCollection(trip: Trip, settlements: Settlement[]): FeatureCollec
   return { type: 'FeatureCollection', features };
 }
 
+function routeBounds(trip: Trip): maplibregl.LngLatBounds {
+  const [first, ...rest] = trip.routeGeometry.coordinates;
+  return rest.reduce(
+    (bounds, coordinate) => bounds.extend(coordinate),
+    new maplibregl.LngLatBounds(first, first),
+  );
+}
+
 function removeRouteLayers(map: maplibregl.Map) {
   LAYER_IDS.forEach((id) => {
     if (map.getLayer(id)) map.removeLayer(id);
@@ -82,13 +93,28 @@ function removeRouteLayers(map: maplibregl.Map) {
  */
 export function useRouteLine(trip: Trip | undefined, settlements: Settlement[] | undefined) {
   const map = useMap();
+  /**
+   * Под какой рейс камеру уже подводили. Без сброса на исчезновении рейса второй прогон
+   * демо не подвёл бы её снова: id рейса на моке повторяется от прогона к прогону.
+   */
+  const fittedTripIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!map) return;
 
     if (!trip) {
       removeRouteLayers(map);
+      fittedTripIdRef.current = null;
       return;
+    }
+
+    if (fittedTripIdRef.current !== trip.id && trip.routeGeometry.coordinates.length > 0) {
+      fittedTripIdRef.current = trip.id;
+      map.fitBounds(routeBounds(trip), {
+        padding: mapRouteFitPadding,
+        maxZoom: MAP_FIT_MAX_ZOOM,
+        duration: MAP_ROUTE_FIT_DURATION_MS,
+      });
     }
 
     const routeData = toRouteFeature(trip);

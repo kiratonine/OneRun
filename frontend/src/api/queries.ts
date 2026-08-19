@@ -5,6 +5,8 @@
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
+import { POLL_INTERVAL_MS } from '@/config/constants';
+import { useIsRealtimeLive } from '@/realtime/realtime-status';
 import { api } from './client';
 import type { CreateOrderPayload } from './types';
 
@@ -24,17 +26,30 @@ export function useSettlements() {
   });
 }
 
+/**
+ * Опрос — запасной канал живости. Пока подписка Supabase жива, он выключен:
+ * события приходят сами. Как только канал отвалился (или его вовсе нет —
+ * на моке и без переменных окружения), данные снова тянутся по таймеру.
+ */
+function useLivePollInterval(): number | false {
+  return useIsRealtimeLive() ? false : POLL_INTERVAL_MS;
+}
+
 export function useOrders() {
+  const refetchInterval = useLivePollInterval();
   return useQuery({
     queryKey: queryKeys.orders,
     queryFn: api.getOrders,
+    refetchInterval,
   });
 }
 
 export function usePool() {
+  const refetchInterval = useLivePollInterval();
   return useQuery({
     queryKey: queryKeys.pool,
     queryFn: api.getPool,
+    refetchInterval,
   });
 }
 

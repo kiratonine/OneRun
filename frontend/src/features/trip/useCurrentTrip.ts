@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 
-import { useTrip } from '@/api/queries';
+import { usePool, useTrip } from '@/api/queries';
 import { ApiError } from '@/api/client';
 import { useCurrentTripId } from './CurrentTripContext';
 
@@ -11,16 +11,23 @@ import { useCurrentTripId } from './CurrentTripContext';
 export function useCurrentTrip() {
   const { tripId, setTripId } = useCurrentTripId();
   const query = useTrip(tripId);
+  const { data: pool } = usePool();
 
   // Рейс мог исчезнуть на бэкенде (демо сбросили). Держать мёртвый id смысла нет:
   // из-за него страница отчёта показывала бы ошибку вместо пустого состояния.
   const isMissing = query.error instanceof ApiError && query.error.status === 404;
+
+  // «Сброс» нажимают с телефона, а рейс уже кэширован (`staleTime: Infinity`) —
+  // сам по себе он не перезапросится и останется на карте. Пустой пул и есть
+  // сигнал сброса: заявок нет, значит нечего и везти.
+  const isPoolEmpty = pool?.ordersCount === 0;
+
   useEffect(() => {
-    if (isMissing) setTripId(null);
-  }, [isMissing, setTripId]);
+    if (tripId && (isMissing || isPoolEmpty)) setTripId(null);
+  }, [tripId, isMissing, isPoolEmpty, setTripId]);
 
   return {
-    trip: isMissing ? undefined : query.data,
+    trip: isMissing || isPoolEmpty ? undefined : query.data,
     tripId,
     setTripId,
     isPending: Boolean(tripId) && query.isPending,

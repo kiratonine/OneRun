@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useCreateTrip, useOrders, usePool, useSettlements } from '@/api/queries';
 import { MapView } from '@/map/MapView';
 import { useSettlementMarkers } from '@/map/useSettlementMarkers';
+import { useBaseLabelFilter } from '@/map/useBaseLabelFilter';
 import { useOrderLines } from '@/map/useOrderLines';
 import { useRouteLine } from '@/map/useRouteLine';
 import { OrderModal } from '@/features/orders/OrderModal';
@@ -21,6 +22,7 @@ interface MapLayersProps {
 
 /** Слои карты живут отдельным компонентом — внутри провайдера, где карта уже есть. */
 function MapLayers({ settlements, orders, trip, selectedOrderCode, onSelectOrder }: MapLayersProps) {
+  useBaseLabelFilter(settlements);
   useSettlementMarkers(settlements);
   useOrderLines(orders, { selectedOrderCode, onSelectOrder, isDimmed: Boolean(trip) });
   useRouteLine(trip, settlements);

@@ -4,7 +4,10 @@ import { MapPage } from '@/routes/MapPage';
 import { OrdersPage } from '@/routes/OrdersPage';
 import { ReportPage } from '@/routes/ReportPage';
 import { DemoPage } from '@/routes/DemoPage';
+import { HealthPage } from '@/routes/HealthPage';
+import { DemoFallbackPanel } from '@/features/demo/DemoFallbackPanel';
 import { CurrentTripProvider } from '@/features/trip/CurrentTripProvider';
+import { useOrdersRealtime } from '@/realtime/useOrdersRealtime';
 import { USE_MOCK_API } from '@/config/constants';
 import { cn } from '@/lib/utils';
 
@@ -19,7 +22,7 @@ function Shell() {
     <div className="flex h-svh flex-col">
       <header className="flex shrink-0 items-center gap-6 border-b px-6 py-3">
         <div className="flex items-baseline gap-2">
-          <span className="text-base font-semibold">Сводный рейс</span>
+          <span className="text-base font-semibold">OneRun</span>
           <span className="text-xs text-muted-foreground">Мангистау</span>
         </div>
 
@@ -50,18 +53,27 @@ function Shell() {
         )}
       </header>
 
-      <main className="min-h-0 flex-1">
+      {/* relative — якорь для резервного пульта, он позиционируется от области контента. */}
+      <main className="relative min-h-0 flex-1">
         <Routes>
           <Route path="/" element={<MapPage />} />
           <Route path="/orders" element={<OrdersPage />} />
           <Route path="/report" element={<ReportPage />} />
+          <Route path="/health" element={<HealthPage />} />
         </Routes>
+
+        {/* Скрыт, пока не нажмут Ctrl+Shift+X. Живёт над всеми вкладками: телефон
+            может отвалиться в любой момент показа, не только на карте. */}
+        <DemoFallbackPanel />
       </main>
     </div>
   );
 }
 
 export function App() {
+  // Подписка одна на всё приложение: заявки нужны и карте, и таблице, и демо-экрану.
+  useOrdersRealtime();
+
   return (
     // Рейс общий для всех вкладок: строят его на карте, показывают ещё в заявках и отчёте.
     <CurrentTripProvider>
