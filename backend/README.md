@@ -39,8 +39,8 @@ Create a Supabase project, then apply SQL files in this order:
 
 If `ORS_API_KEY` is absent or OpenRouteService cannot build a route, the
 routing module returns deterministic straight-line geometry and applies the
-configured detour factor. Add the ORS key in Railway before the final road
-geometry acceptance check.
+configured detour factor. Production uses the HeiGIT OpenRouteService endpoint;
+authenticated road geometry has been verified against the full demo route.
 
 ## Verification
 

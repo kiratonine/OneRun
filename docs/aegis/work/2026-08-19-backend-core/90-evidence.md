@@ -37,5 +37,8 @@
 - Repeated `GET /api/trips/:id` returned identical route geometry and report content without a new routing/report call.
 - Three consecutive live `POST /api/demo/reset` calls returned `{ "ok": true }`; afterwards orders and pool counts were zero, and the deleted trip returned HTTP 404.
 - Covered: production database schema, Realtime publication membership, demo threshold, transactional persistence, public deployment, and cached readback.
-- Uncovered: authenticated ORS road geometry (no `ORS_API_KEY`), Gemini/Backend-2, frontend Realtime rendering, and final CORS origin.
-- Confidence: A for the live Backend-1 fallback path; C for the remaining external-owner integrations.
+- Configured `ORS_API_KEY` as a Railway service variable and migrated the client to `https://api.heigit.org/openrouteservice/v2`.
+- Direct authenticated ORS verification returned HTTP 200 for the complete demo route with 3,329 geometry points.
+- A fresh production seed → trip flow returned a 1,323.14 km road route with 3,329 geometry points; cached GET returned identical geometry, then reset restored zero orders.
+- Uncovered: Gemini/Backend-2, frontend Realtime rendering, and final CORS origin.
+- Confidence: A for the live Backend-1 ORS and fallback paths; C for the remaining external-owner integrations.
