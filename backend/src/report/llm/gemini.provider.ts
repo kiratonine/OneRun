@@ -3,6 +3,8 @@ import axios from 'axios';
 import { ReportResult, TripSummaryDto } from '../dto/trip-summary.dto';
 import {
   buildReportPrompt,
+  LOADING_TABLE_HEADER,
+  PRICE_TABLE_HEADER,
   REPORT_SYSTEM_INSTRUCTION,
 } from '../prompts/report.prompt';
 import { buildFallbackReport } from '../templates/fallback-report';
@@ -77,6 +79,13 @@ function hasRequiredSections(content: string): boolean {
   return REQUIRED_REPORT_SECTIONS.every((section) => content.includes(section));
 }
 
+function hasLocalizedTableHeaders(content: string): boolean {
+  return (
+    content.includes(LOADING_TABLE_HEADER) &&
+    content.includes(PRICE_TABLE_HEADER)
+  );
+}
+
 function errorReason(error: unknown): string {
   if (axios.isAxiosError(error)) {
     return `HTTP status=${error.response?.status ?? 'none'} code=${error.code ?? 'none'}`;
@@ -129,6 +138,9 @@ export class GeminiProvider implements LlmProvider {
       }
       if (!hasRequiredSections(contentMd)) {
         throw new Error('Gemini response omitted required report sections');
+      }
+      if (!hasLocalizedTableHeaders(contentMd)) {
+        throw new Error('Gemini response omitted localized table headers');
       }
 
       return { contentMd, raw: data, source: 'gemini' };

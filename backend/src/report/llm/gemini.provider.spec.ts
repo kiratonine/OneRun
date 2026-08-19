@@ -15,6 +15,26 @@ const summary: TripSummaryDto = {
   orders: [],
 };
 
+const validGeminiReport = `# Отчёт
+
+## Маршрут следования
+220 км
+
+## План погрузки
+| Очерёдность загрузки | Заявка | Посёлок | Груз | Вес | Места | Размещение |
+|---:|---|---|---|---:|---|---|
+
+## Стоимость по заявкам
+| Заявка | Отправитель | Посёлок | Вес | Расстояние от хаба | Цена |
+|---|---|---|---:|---:|---:|
+240 км
+
+## Экономический эффект
+20 км, 3570 ₸, 520 кг, 178.5 ₸/км
+
+## Особые замечания
+Нет`;
+
 describe('GeminiProvider', () => {
   const originalKey = process.env.GEMINI_API_KEY;
   const originalModel = process.env.GEMINI_MODEL;
@@ -45,7 +65,7 @@ describe('GeminiProvider', () => {
           content: {
             parts: [
               {
-                text: '```markdown\n# Отчёт\n\n## Маршрут следования\n220 км\n\n## План погрузки\n520 кг\n\n## Стоимость по заявкам\n240 км\n\n## Экономический эффект\n20 км, 3570 ₸, 178.5 ₸/км\n\n## Особые замечания\nНет\n```',
+                text: `\`\`\`markdown\n${validGeminiReport}\n\`\`\``,
               },
             ],
           },
@@ -59,8 +79,7 @@ describe('GeminiProvider', () => {
     const result = await new GeminiProvider().generate(summary);
 
     expect(result).toEqual({
-      contentMd:
-        '# Отчёт\n\n## Маршрут следования\n220 км\n\n## План погрузки\n520 кг\n\n## Стоимость по заявкам\n240 км\n\n## Экономический эффект\n20 км, 3570 ₸, 178.5 ₸/км\n\n## Особые замечания\nНет',
+      contentMd: validGeminiReport,
       raw: response,
       source: 'gemini',
     });
@@ -130,5 +149,39 @@ describe('GeminiProvider', () => {
 
     expect(result.source).toBe('mock');
     expect(result.contentMd).toContain('## Маршрут следования');
+  });
+
+  it('returns the localized fallback when Gemini exposes technical field names as table headers', async () => {
+    jest.spyOn(axios, 'post').mockResolvedValue({
+      data: {
+        candidates: [
+          {
+            content: {
+              parts: [
+                {
+                  text: validGeminiReport
+                    .replace(
+                      '| Очерёдность загрузки | Заявка | Посёлок | Груз | Вес | Места | Размещение |',
+                      '| loadPosition | code | toName | cargoName | weightKg | boxesCount | boxNote |',
+                    )
+                    .replace(
+                      '| Заявка | Отправитель | Посёлок | Вес | Расстояние от хаба | Цена |',
+                      '| code | shipperName | toName | weightKg | legDistanceKm | priceKzt |',
+                    ),
+                },
+              ],
+            },
+          },
+        ],
+      },
+    });
+
+    const result = await new GeminiProvider().generate(summary);
+
+    expect(result.source).toBe('mock');
+    expect(result.contentMd).toContain(
+      '| Очерёдность загрузки | Заявка | Посёлок | Груз | Вес | Места | Размещение |',
+    );
+    expect(result.contentMd).not.toContain('| loadPosition | code | toName |');
   });
 });
