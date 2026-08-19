@@ -12,13 +12,17 @@ import {
   LineStringGeometry,
   RoutingPoint,
 } from './routing.types';
-import { haversineDistanceKm, orderByNearestNeighbour } from './routing.util';
+import { haversineDistanceKm, orderByOptimalRoundTrip } from './routing.util';
 
 interface OrsGeoJsonResponse {
   features: Array<{
     geometry: LineStringGeometry;
     properties: { summary: { distance: number } };
   }>;
+}
+
+interface OrsMatrixResponse {
+  distances: Array<Array<number | null>>;
 }
 
 interface RouteLeg {
@@ -35,6 +39,14 @@ function roundKilometres(value: number): number {
   return Math.round(value * 100) / 100;
 }
 
+function describeError(error: unknown): string {
+  return axios.isAxiosError(error)
+    ? `status=${error.response?.status ?? 'none'} code=${error.code ?? 'none'} message=${error.message}`
+    : error instanceof Error
+      ? error.message
+      : 'unknown error';
+}
+
 @Injectable()
 export class RoutingService {
   private readonly logger = new Logger(RoutingService.name);
@@ -46,7 +58,7 @@ export class RoutingService {
     const uniqueDestinations = Array.from(
       new Map(destinations.map((point) => [point.code, point])).values(),
     );
-    const orderedDestinations = orderByNearestNeighbour(
+    const orderedDestinations = await this.orderDestinations(
       hub,
       uniqueDestinations,
     );
@@ -75,6 +87,49 @@ export class RoutingService {
     };
   }
 
+  private async orderDestinations(
+    hub: RoutingPoint,
+    destinations: RoutingPoint[],
+  ): Promise<RoutingPoint[]> {
+    const points = [hub, ...destinations];
+
+    try {
+      const { data } = await axios.post<OrsMatrixResponse>(
+        `${ORS_BASE_URL}/matrix/${ORS_PROFILE}`,
+        {
+          locations: points.map(coordinateOf),
+          metrics: ['distance'],
+          units: 'km',
+        },
+        orsRequestConfig,
+      );
+      const distances = data.distances;
+      if (
+        distances.length !== points.length ||
+        distances.some(
+          (row) =>
+            row.length !== points.length ||
+            row.some(
+              (distance) => distance === null || !Number.isFinite(distance),
+            ),
+        )
+      ) {
+        throw new Error('ORS returned an incomplete distance matrix');
+      }
+
+      return orderByOptimalRoundTrip(
+        hub,
+        destinations,
+        distances as number[][],
+      );
+    } catch (error: unknown) {
+      this.logger.warn(
+        `ORS matrix request failed; optimizing by straight-line distance (${describeError(error)})`,
+      );
+      return orderByOptimalRoundTrip(hub, destinations);
+    }
+  }
+
   private async requestRoute(points: RoutingPoint[]): Promise<RouteLeg> {
     const coordinates = points.map(coordinateOf);
 
@@ -95,12 +150,9 @@ export class RoutingService {
         source: 'ors',
       };
     } catch (error: unknown) {
-      const reason = axios.isAxiosError(error)
-        ? `status=${error.response?.status ?? 'none'} code=${error.code ?? 'none'} message=${error.message}`
-        : error instanceof Error
-          ? error.message
-          : 'unknown error';
-      this.logger.warn(`ORS request failed; using fallback (${reason})`);
+      this.logger.warn(
+        `ORS request failed; using fallback (${describeError(error)})`,
+      );
 
       const straightLineDistance = points
         .slice(1)

@@ -23,29 +23,94 @@ export function haversineDistanceKm(
   return 2 * EARTH_RADIUS_KM * Math.asin(Math.sqrt(haversine));
 }
 
-export function orderByNearestNeighbour(
+type DistanceMatrix = ReadonlyArray<ReadonlyArray<number>>;
+
+function haversineDistanceMatrix(points: RoutingPoint[]): number[][] {
+  return points.map((from) =>
+    points.map((to) => haversineDistanceKm(from, to)),
+  );
+}
+
+function assertDistanceMatrix(
+  matrix: DistanceMatrix,
+  expectedSize: number,
+): void {
+  if (
+    matrix.length !== expectedSize ||
+    matrix.some(
+      (row) =>
+        row.length !== expectedSize ||
+        row.some((distance) => !Number.isFinite(distance) || distance < 0),
+    )
+  ) {
+    throw new Error(`Distance matrix must be ${expectedSize}x${expectedSize}`);
+  }
+}
+
+export function orderByOptimalRoundTrip(
   hub: RoutingPoint,
   destinations: RoutingPoint[],
+  distanceMatrix?: DistanceMatrix,
 ): RoutingPoint[] {
-  const remaining = [...destinations];
-  const ordered: RoutingPoint[] = [];
-  let current = hub;
-
-  while (remaining.length > 0) {
-    remaining.sort((left, right) => {
-      const distanceDelta =
-        haversineDistanceKm(current, left) -
-        haversineDistanceKm(current, right);
-      return distanceDelta || left.code.localeCompare(right.code);
-    });
-
-    const next = remaining.shift();
-    if (!next) {
-      break;
-    }
-    ordered.push(next);
-    current = next;
+  if (destinations.length === 0) {
+    return [];
   }
 
-  return ordered;
+  const points = [hub, ...destinations];
+  const distances = distanceMatrix ?? haversineDistanceMatrix(points);
+  assertDistanceMatrix(distances, points.length);
+
+  let bestIndices: number[] | undefined;
+  let bestDistance = Number.POSITIVE_INFINITY;
+
+  function visit(
+    currentIndex: number,
+    remainingIndices: number[],
+    orderedIndices: number[],
+    travelledDistance: number,
+  ): void {
+    if (remainingIndices.length === 0) {
+      const roundTripDistance = travelledDistance + distances[currentIndex][0];
+      const candidateCodes = orderedIndices
+        .map((index) => points[index].code)
+        .join('\u0000');
+      const bestCodes = bestIndices
+        ?.map((index) => points[index].code)
+        .join('\u0000');
+
+      if (
+        roundTripDistance < bestDistance ||
+        (roundTripDistance === bestDistance &&
+          (bestCodes === undefined || candidateCodes < bestCodes))
+      ) {
+        bestDistance = roundTripDistance;
+        bestIndices = [...orderedIndices];
+      }
+      return;
+    }
+
+    for (const nextIndex of remainingIndices) {
+      const nextDistance =
+        travelledDistance + distances[currentIndex][nextIndex];
+      if (nextDistance > bestDistance) {
+        continue;
+      }
+
+      visit(
+        nextIndex,
+        remainingIndices.filter((index) => index !== nextIndex),
+        [...orderedIndices, nextIndex],
+        nextDistance,
+      );
+    }
+  }
+
+  visit(
+    0,
+    destinations.map((_, index) => index + 1),
+    [],
+    0,
+  );
+
+  return (bestIndices ?? []).map((index) => points[index]);
 }
