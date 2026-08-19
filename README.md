@@ -2,7 +2,7 @@
   <img
     src="assets/logo/onerun-logo.png"
     alt="Логотип OneRun"
-    width="850"
+    width="650"
   />
 </p>
 
