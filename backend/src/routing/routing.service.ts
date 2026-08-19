@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import axios from 'axios';
 import {
   ORS_BASE_URL,
@@ -37,6 +37,8 @@ function roundKilometres(value: number): number {
 
 @Injectable()
 export class RoutingService {
+  private readonly logger = new Logger(RoutingService.name);
+
   async buildRoute(
     hub: RoutingPoint,
     destinations: RoutingPoint[],
@@ -92,7 +94,14 @@ export class RoutingService {
         distanceKm: roundKilometres(feature.properties.summary.distance / 1000),
         source: 'ors',
       };
-    } catch {
+    } catch (error: unknown) {
+      const reason = axios.isAxiosError(error)
+        ? `status=${error.response?.status ?? 'none'} code=${error.code ?? 'none'} message=${error.message}`
+        : error instanceof Error
+          ? error.message
+          : 'unknown error';
+      this.logger.warn(`ORS request failed; using fallback (${reason})`);
+
       const straightLineDistance = points
         .slice(1)
         .reduce(
