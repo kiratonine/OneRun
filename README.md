@@ -23,10 +23,10 @@
 
 <p align="center">
   <a href="https://pure-perception-production-173c.up.railway.app/landing">
-    🚀 Live Demo
+    🚀 Live App
   </a>
   ·
-  <a href="https://www.google.com">
+  <a href="https://drive.google.com/file/d/1KlOGyXX79EJ63sQOjo7aVJ6YWe8tFiVE/view?usp=sharing">
     📊 Presentation
   </a>
   ·
